@@ -78,7 +78,7 @@ void cmsk_clear(struct cmsk *cmsk);
 bool cmsk_update(struct cmsk *cmsk, unsigned long item1, unsigned long item2);
 void cmsk_age(struct cmsk *cmsk);
 void cmsk_sort(struct cmsk *cmsk);
-void cmsk_print(struct cmsk *cmsk);
+void cmsk_print(struct cmsk *cmsk, int g);
 struct achash_item *cmsk_hot_pages(struct cmsk *cmsk, unsigned int *n);
 void cmsk_sort_by_pid(struct achash_item *items, unsigned int n);
 

@@ -107,7 +107,7 @@ void PMUMemoryOptimizer::print_statistics()
 
   pmu_state_.print_statistics();
 
-  cmsk_print(&cmsk_);
+  cmsk_print(&cmsk_, hmd_config.granularity_order);
 }
 
 void PMUMemoryOptimizer::migrate_pages()
@@ -326,13 +326,13 @@ int PMUMemoryOptimizer::parse_filter_addr_range_option(char *str, char *av)
     if (!p2 || p == p2)
       goto err;
 
-    start = strtol(p, &end_str, 10);
+    start = strtol(p, &end_str, 0);
     if (*end_str != ':')
       goto err;
 
     p = p2 + 1;
     if (p < str + len) {
-      size = strtol(p, &end_str, 10);
+      size = strtol(p, &end_str, 0);
       if (*end_str)
         goto err;
     }
@@ -540,16 +540,32 @@ int PMUMemoryOptimizer::main(int argc, char *argv[])
     pmu_state_.enable_dram_events();
 
     for (i = 0;
-         !pmu_state_.pmem_samples_enough() &&
-             !interrupted && !full && i < hmd_config.interval_max;
-         i++) {
+         !pmu_state_.pmem_samples_enough() 
+				 && 
+				 !interrupted 
+				 && 
+				 !full 
+				 && 
+				 i < hmd_config.interval_max; 
+				 i++) {
+
       pmu_state_.begin_interval_unit();
       pmu_state_.enable_pmem_events();
       full = pmu_state_.read_pmem_samples(hmd_config.unit_interval_ms);
-
-      if (pmu_state_.adjust_sample_period_prepare())
+			printf(">>>> samples: %lu\n", pmu_state_.stats_.samples);
+		  // printf("i= %u\n", i);
+		  // printf("max= %u\n", hmd_config.interval_max);
+		  // printf("end= %u\n", !(i < hmd_config.interval_max));
+			// printf("samples enough= %u\n", pmu_state_.pmem_samples_enough());
+      //
+      if (pmu_state_.adjust_sample_period_prepare()) {
+				printf("!!!!! adjust break !!!!\n");
         break;
+			};
     }
+	  printf("END\n");
+	  printf("samples enough= %u\n", pmu_state_.pmem_samples_enough());
+		printf("full= %u\n", full);
 
     pmu_state_.read_imc_count();
     pmu_state_.disable_dram_events();

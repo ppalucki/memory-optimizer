@@ -97,7 +97,7 @@ void PmuCpu::setup_pmem_attrs(PmuEventAttrs& attrs, int sample_period)
     auto attr = new perf_event_attr;
     attrs[i].reset(attr);
     if (resolve_event(event, attr) < 0) {
-      fprintf(stderr, "cannot resolve %s\n", event);
+      fprintf(stderr, "cannot resolve pmem %s\n", event);
       exit(1);
     }
     attr->sample_period = sample_period;
@@ -248,7 +248,7 @@ void PmuCpu::setup_dram_attrs(PmuEventAttrs& attrs)
     auto attr = new perf_event_attr;
     attrs[i].reset(attr);
     if (resolve_event(event, attr) < 0) {
-      fprintf(stderr, "cannot resolve %s\n", event);
+      fprintf(stderr, "cannot resolve dram %s\n", event);
       exit(1);
     }
     attr->exclude_kernel = 1;

@@ -42,6 +42,7 @@ struct pmu_cpu_stats {
 class PmuCpu
 {
  public:
+  pmu_cpu_stats stats_ {};
   PmuCpu(int cpuid);
   ~PmuCpu();
 
@@ -74,6 +75,7 @@ class PmuCpu
     memset(&stats_, 0, sizeof(stats_));
   }
 
+
  private:
   bool read_pmem_samples_fd(struct perf_fd *fd, struct sample_stats *st,
                             PmuPmemSampleProcessor *processor);
@@ -83,7 +85,6 @@ class PmuCpu
   std::vector<perf_fd> dram_fds_;
   std::vector<u64> dram_counts_;
   int cpuid_;
-  pmu_cpu_stats stats_ {};
 };
 
 class PmuNode
@@ -178,6 +179,7 @@ class PmuState
   bool adjust_sample_period_prepare(void);
   void calc_dram_count_avg(void);
   void print_statistics(void);
+  struct sample_stats stats_;
 
   const std::vector<PmuCpu *>& get_cpus() const { return cpus_; }
   const std::vector<PmuNode *>& get_nodes() const { return nodes_; }
@@ -198,7 +200,6 @@ class PmuState
   int pmem_max_fd_;
   int pmem_expected_samples_margin_;
   long pmem_samples_unit_begin_;
-  struct sample_stats stats_;
   unsigned long timestamp_;
   fd_set pmem_open_fds_;
   PmuPmemSampleProcessor *pmem_sample_processor_;

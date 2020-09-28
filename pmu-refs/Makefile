@@ -10,7 +10,7 @@
 PREFIX := /usr/local
 BIN := ${PREFIX}/bin
 LIBJEVENTS_DIR = ../pmu-tools/jevents
-PMEM2DRAM_DIR = ../../pmem2dram
+PMEM2DRAM_DIR = ..
 CXXFLAGS := -g -Wall -O2 -std=c++11 -MMD -Wno-unused-result \
 	-I${LIBJEVENTS_DIR} -I${PMEM2DRAM_DIR}
 LDLIBS := -lnuma -lstdc++ -lm

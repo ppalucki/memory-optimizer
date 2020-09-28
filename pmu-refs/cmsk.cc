@@ -179,11 +179,13 @@ static unsigned int achash_new_item(struct achash *achash,
   item->addr = addr;
   item->pid = pid;
   item->next = 0;
+	// with hash_mode, no cmsk, just increament the hash.
   if (achash->hash_mode) {
     item->count = 1;
     achash->samples++;
     hist_inc(achash, 1);
   } else {
+		// otherwise with cmsk - set conut/samples to threshold ?!
     item->count = achash->threshold;
     achash->samples += achash->threshold;
   }
@@ -274,9 +276,10 @@ void hist_print(struct achash *achash)
   printf("hist total: %u\n", hist_total);
 }
 
-static void achash_print(struct achash *achash, unsigned int total)
+static void achash_print(struct achash *achash, unsigned int total, int gran)
 {
   unsigned int i, j, n, samples, size, nsize;
+	float weight;
 
   samples = achash->samples;
   size = achash->len;
@@ -284,8 +287,11 @@ static void achash_print(struct achash *achash, unsigned int total)
   /* To avoid to be divided by 0 */
   total = total ? : 1;
 
-  printf("hot size: %u\n", size);
-  printf("hot weight: %.2f%%\n", samples * 100.0 / total);
+  printf("granulatrity: %i b\n", (1<<gran));
+  printf("hot size: %u (%.2f Mb)\n", size, float(size) * float((1<<gran))/1e6);
+	weight = samples * 100.0 / total;
+  printf("hot weight: %.2f%%\n", weight);
+  printf("======= hot size to total: %.2f%%\n", float(size) * 100.0 / float(total));
 
   n = 1;
   for (i = 0; i < sizeof(cms_count_t) * 8; i++, n <<= 1) {
@@ -294,7 +300,7 @@ static void achash_print(struct achash *achash, unsigned int total)
       continue;
     for (j = nsize; j < size; j++)
       samples -= achash->items[j].count;
-    printf("hot size > %d: %u\n", n, nsize);
+    printf("hot size > %d: %u \n", n, nsize);
     printf("hot weight > %d: %.2f%%\n", n, samples * 100.0 / total);
     size = nsize;
   }
@@ -302,7 +308,10 @@ static void achash_print(struct achash *achash, unsigned int total)
   printf("hot pages:\n");
   for (i = 0; i < std::min(8U, achash->len); i++) {
     auto item = &achash->items[i];
-    printf("  %lx %lu: %lu, %.2f%%\n", item->addr, item->pid, item->count,
+    printf("  %lx %lu: %lu, %.2f%%\n", 
+					 item->addr * (1<<gran), 
+					 item->pid, 
+					 item->count,
            double(item->count) * 100 / total);
   }
 }
@@ -332,10 +341,10 @@ void cmsk_fini(struct cmsk *cmsk)
 void cmsk_clear(struct cmsk *cmsk)
 {
   if (!cmsk->achash.hash_mode)
-    cms_clear(&cmsk->cms);
+    cms_clear(&cmsk->cms); // no hash_mode clear cms structure
   else
-    cmsk->cms.total = 0;
-  achash_clear(&cmsk->achash);
+    cmsk->cms.total = 0; // with hash_mode set total to 0
+  achash_clear(&cmsk->achash); 
 }
 
 bool cmsk_update(struct cmsk *cmsk, unsigned long item1, unsigned long item2)
@@ -345,12 +354,15 @@ bool cmsk_update(struct cmsk *cmsk, unsigned long item1, unsigned long item2)
   struct cms *cms = &cmsk->cms;
   struct achash *achash = &cmsk->achash;
 
+
   if (achash->hash_mode) {
+		// with hash_mode, no cms, calc hash, update total and update achash item
     h = hash(item1, item2, cms->depth - 1);
     cms->total++;
     return achash_update(achash, item1, item2, h);
   }
 
+	// always update cms struct or conditionally (if count >= threshold) also call ashash_update
   count = cms_update(cms, item1, item2, &h);
   if (count >= achash->threshold + cms_error(cms))
     return achash_update(achash, item1, item2, h);
@@ -417,7 +429,7 @@ struct achash_item *cmsk_hot_pages(struct cmsk *cmsk, unsigned int *n)
   return achash->items.data();
 }
 
-void cmsk_print(struct cmsk *cmsk)
+void cmsk_print(struct cmsk *cmsk, int gran)
 {
   unsigned int total;
 
@@ -427,5 +439,5 @@ void cmsk_print(struct cmsk *cmsk)
     return;
   printf("error_threshold: %u\n", cms_error(&cmsk->cms));
 
-  achash_print(&cmsk->achash, total);
+  achash_print(&cmsk->achash, total, gran);
 }
